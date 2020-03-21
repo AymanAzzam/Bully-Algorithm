@@ -21,6 +21,15 @@ def configuration():
     print_dec(dec)
     return dec,leader_time,okay_time
 
+def getTaskPort(my_ip_port,leader_ip_port):
+    context = zmq.Context()
+    if(my_ip_port == leader_ip_port):
+        task_socket = context.socket(zmq.REP)
+    else:
+        task_socket = context.socket(zmq.REQ)
+
+    return task_socket
+
 def connection(my_ip_port,dec):
     context = zmq.Context()
     pub_sucket = context.socket(zmq.PUB)
@@ -35,6 +44,7 @@ def connection(my_ip_port,dec):
     return pub_sucket,sub_sucket
 
 def electLeader(my_ip_port):
+    #return the leader_ip_port
     return 0
 
 def task(my_ip_port,leader_ip_port):
@@ -48,5 +58,9 @@ def main():
     dec,leader_time,okay_time = configuration()
     pub_sucket,sub_sucket = connection(my_ip_port,dec)
     leader_ip_port = electLeader(my_ip_port)
+    task_port = getTaskPort(my_ip_port,leader_ip_port)
+    
+    #while(True):
+
 
 main()
