@@ -21,16 +21,6 @@ def configuration():
     print_dec(dec)
     return dec,leader_time,okay_time
 
-def getTaskPort(my_ip_port,leader_ip_port,leader_time):
-    context = zmq.Context()
-    if(my_ip_port == leader_ip_port):
-        task_socket = context.socket(zmq.REP)
-    else:
-        task_socket = context.socket(zmq.REQ)
-        task_socket.setsockopt(zmq.RCVTIMEO, leader_time)
-
-    return task_socket
-
 def connection(my_ip_port,dec):
     context = zmq.Context()
     pub_sucket = context.socket(zmq.PUB)
@@ -54,14 +44,30 @@ def task(my_ip_port,leader_ip_port):
     else:
         print("I'm normal machine, my_ip_port is %s"%my_ip_port)
 
+
+def getTaskPort(my_ip_port,leader_ip_port,leader_time):
+    context = zmq.Context()
+    if(my_ip_port == leader_ip_port):
+        task_socket = context.socket(zmq.REP)
+        task_socket.bind("tcp://%s"%leader_ip_port)
+    else:
+        task_socket = context.socket(zmq.REQ)
+        task_socket.setsockopt(zmq.RCVTIMEO, leader_time)
+        task_socket.connect("tcp://%s"%leader_ip_port)
+
+    return task_socket
+
 def main():
     my_ip_port = sys.argv[1]
-    dec,leader_time,okay_time = configuration()
-    pub_sucket,sub_sucket = connection(my_ip_port,dec)
-    leader_ip_port = electLeader(my_ip_port)
-    task_port = getTaskPort(my_ip_port,leader_ip_port,leader_time)
     
-    #while(True):
+    dec,leader_time,okay_time = configuration()
+   
+    pub_sucket,sub_sucket = connection(my_ip_port,dec)
+   
+    leader_ip_port = electLeader(my_ip_port)
+   
+    task_port = getTaskPort(my_ip_port,leader_ip_port,leader_time)
 
+    
 
 main()
