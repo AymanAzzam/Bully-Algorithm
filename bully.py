@@ -1,11 +1,9 @@
 import sys
 import zmq
+from zmq import EAGAIN
+from utilities import *
 
 # leader_time and okay_time in milliseconds
-
-def print_dec(dec):
-    for k,v in dec.items():
-        print(k,v)
 
 def configuration():
     dec = {}
@@ -18,56 +16,43 @@ def configuration():
         ip_port_pri = (f.readline())
         dec[ip_port_pri.split(" ")[0]] = ip_port_pri.split(" ")[1]
         machines_num -= 1
-    print_dec(dec)
+    #print_dec(dec)
     return dec,leader_time,okay_time
 
-def connection(my_ip_port,dec):
+def connection(dec,my_ip_port,okay_time):
     context = zmq.Context()
     pub_sucket = context.socket(zmq.PUB)
     sub_sucket = context.socket(zmq.SUB)
 
     pub_sucket.bind("tcp://%s"%my_ip_port)
     sub_sucket.subscribe("")
+    sub_sucket.setsockopt(zmq.RCVTIMEO, okay_time)
     for k,v in dec.items():
         if(k != my_ip_port):
             sub_sucket.connect("tcp://%s"%k)
     
     return pub_sucket,sub_sucket
 
-def electLeader(my_ip_port):
+def electLeader(pub_sucket,sub_sucket,my_ip_port):
     #return the leader_ip_port
-    return 0
-
-def task(my_ip_port,leader_ip_port):
-    if(leader_ip_port == my_ip_port):
-        print("I'm the Leader, my_ip_port is %s"%my_ip_port)
-    else:
-        print("I'm normal machine, my_ip_port is %s"%my_ip_port)
-
-
-def getTaskPort(my_ip_port,leader_ip_port,leader_time):
-    context = zmq.Context()
-    if(my_ip_port == leader_ip_port):
-        task_socket = context.socket(zmq.REP)
-        task_socket.bind("tcp://%s"%leader_ip_port)
-    else:
-        task_socket = context.socket(zmq.REQ)
-        task_socket.setsockopt(zmq.RCVTIMEO, leader_time)
-        task_socket.connect("tcp://%s"%leader_ip_port)
-
-    return task_socket
+    return "127.0.0.1:5555"
 
 def main():
     my_ip_port = sys.argv[1]
     
     dec,leader_time,okay_time = configuration()
    
-    pub_sucket,sub_sucket = connection(my_ip_port,dec)
+    pub_sucket,sub_sucket = connection(dec,my_ip_port,okay_time)
    
-    leader_ip_port = electLeader(my_ip_port)
+    while(True):
+        leader_ip_port = electLeader(pub_sucket,sub_sucket,my_ip_port)
    
-    task_port = getTaskPort(my_ip_port,leader_ip_port,leader_time)
+        task_port = getTaskSocket(my_ip_port,leader_ip_port,leader_time)
 
-    
+        if(my_ip_port == leader_ip_port):
+            leaderTask(task_port,my_ip_port)
+        else:
+            #the machine should return if it knows that the leader is dead
+            machineTask(pub_sucket,sub_sucket,task_port,my_ip_port,dec,okay_time)
 
 main()
