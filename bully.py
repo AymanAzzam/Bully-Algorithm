@@ -21,7 +21,7 @@ def configuration():
     print_dec(dec)
     return dec,leader_time,okay_time
 
-def connection():
+def connection(my_ip_port):
     context = zmq.Context()
     pub_sucket = context.socket(zmq.PUB)
     sub_sucket = context.socket(zmq.SUB)
@@ -34,8 +34,9 @@ def electLeader():
     return
 
 def main():
+    my_ip_port = sys.argv[1]
     dec,leader_time,okay_time = configuration()
-    pub_sucket,sub_sucket = connection()
+    pub_sucket,sub_sucket = connection(my_ip_port)
     electLeader()
 
 main()
