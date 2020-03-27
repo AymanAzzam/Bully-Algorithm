@@ -18,29 +18,74 @@ def getTaskSocket(my_ip_port,leader_ip_port,leader_time):
 
     return task_socket
 
-def leaderTask(task_port,my_ip_port):
+def leaderTask(task_socket,my_ip_port):
     print("%s I'm the leader"%my_ip_port)
     while(True):
-        task_port.recv_string()
-        task_port.send_string(my_ip_port)
+        task_socket.recv_string()
+        task_socket.send_string(my_ip_port)
 
-def machineTask(pub_sucket,sub_sucket,task_port,my_ip_port,dec,okay_time):
-    print("%s I'm a normal machine"%my_ip_port)
-    sub_sucket.setsockopt(zmq.RCVTIMEO, 0)
-    while(True):
-        task_port.send_string(my_ip_port)
-        try :
-            task_port.recv_string()
-        except zmq.error.Again as e: #catch the exception comes from RCVTIMEO
-            pub_sucket.send_string("Election Message " + dec[my_ip_port])
-            sub_sucket.setsockopt(zmq.RCVTIMEO, okay_time)
-            return # I find out that the leader is dead
+def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port, okay_time):
+    #return the leader_ip_port
+    I_am_leader = False
+    recieved_ok = False
+    my_priority = dec[my_ip_port]
+    #sub_socket.setsockopt(zmq.RCVTIMEO,0) #wait 1ms before returning with EAGAIN
+
+    for k,v in dec.items(): # loop on all machines
+
+        if(v > my_priority):
+            pub_socket.send("%s %s %s" %("Election",my_ip_port,k))
+
+        try: 
+            #check if i recieved election message from another machine
+            sub_election_socket.setsockopt(zmq.RCVTIMEO,0)
+            recieved_message = sub_election_socket.recv()
+            if (recieved_message.split(" ")[2] == my_ip_port):
+                    pub_socket.send("%s %s" % ("Ok",recieved_message.split(" ")[1])) #reply with an ok message to that machine
+                    I_am_leader = True
+        except  zmq.error.Again as e:
+            I_am_leader = False
+
         try:
-            election = sub_sucket.recv_string()
-        except zmq.error.Again as e: #catch the exception comes from RCVTIMEO
-            continue
-        if(election.split(" ")[0] == "Election Message" and election.split(" ")[1] > dec[my_ip_port]):
-            sub_sucket.setsockopt(zmq.RCVTIMEO, okay_time)
-            return # I got election message
+            #check if i recieved ok message from another machine
+            sub_ok_socket.setsockopt(zmq.RCVTIMEO,10) # 10 to be changed
+            recieved_message = sub_ok_socket.recv()
+            if (recieved_message.split(" ")[1] == my_ip_port):
+                recieved_ok = True
+                break
+                
+        except zmq.error.Again as e:
+                I_am_leader = True
+                 
+
+    if (recieved_ok != True):
+        try:
+            sub_ok_socket.setsockopt(zmq.RCVTIMEO,okay_time)  # give the machines another chance to reply
+            msg = sub_ok_socket.recv_string()
+        except:
+            pub_socket.send("%s %s" %("Leader",my_ip_port))
+            return my_ip_port  
+
+    if (recieved_ok == True):
+        sub_leader_socket.setsockopt(zmq.RCVTIMEO,-1)
+        msg = sub_leader_socket.recv()
+        return (msg.split(" ")[1]) 
+
+
+      
+
+    #return "127.0.0.1:5555"        
+
+def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,task_socket,my_ip_port,okay_time):
+    print("%s I'm a normal machine"%my_ip_port)
+    #sub_sucket.setsockopt(zmq.RCVTIMEO, 0)
+    while(True):
+        task_socket.send_string(my_ip_port)
+        try :
+            task_socket.recv_string()
+        except zmq.error.Again as e:
+            electLeader(dec,pub_socket,sub_socket,my_ip_port,okay_time)
+
+
             
         

@@ -21,38 +21,42 @@ def configuration():
 
 def connection(dec,my_ip_port,okay_time):
     context = zmq.Context()
-    pub_sucket = context.socket(zmq.PUB)
-    sub_sucket = context.socket(zmq.SUB)
+    pub_socket = context.socket(zmq.PUB)
+    sub_election_socket = context.socket(zmq.SUB)
+    sub_ok_socket = context.socket(zmq.SUB)
+    sub_leader_socket = context.socket(zmq.SUB)
 
-    pub_sucket.bind("tcp://%s"%my_ip_port)
-    sub_sucket.subscribe("")
-    sub_sucket.setsockopt(zmq.RCVTIMEO, okay_time)
+    pub_socket.bind("tcp://%s"%my_ip_port)
+    sub_election_socket.subscribe("Election")
+    sub_ok_socket.subscribe("Ok")
+    sub_leader_socket.subscribe("Leader")
+    #sub_socket.setsockopt(zmq.RCVTIMEO, okay_time)
     for k,v in dec.items():
         if(k != my_ip_port):
-            sub_sucket.connect("tcp://%s"%k)
+            sub_election_socket.connect("tcp://%s"%k)
+            sub_ok_socket.connect("tcp://%s"%k)
+            sub_leader_socket.connect("tcp://%s"%k)
     
-    return pub_sucket,sub_sucket
+    return pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket
 
-def electLeader(pub_sucket,sub_sucket,my_ip_port):
-    #return the leader_ip_port
-    return "127.0.0.1:5555"
+
 
 def main():
     my_ip_port = sys.argv[1]
     
     dec,leader_time,okay_time = configuration()
    
-    pub_sucket,sub_sucket = connection(dec,my_ip_port,okay_time)
+    pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket = connection(dec,my_ip_port,okay_time)
    
     while(True):
-        leader_ip_port = electLeader(pub_sucket,sub_sucket,my_ip_port)
+        leader_ip_port = electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
    
-        task_port = getTaskSocket(my_ip_port,leader_ip_port,leader_time)
+        task_socket = getTaskSocket(my_ip_port,leader_ip_port,leader_time)
 
         if(my_ip_port == leader_ip_port):
-            leaderTask(task_port,my_ip_port)
+            leaderTask(task_socket,my_ip_port)
         else:
             #the machine should return if it knows that the leader is dead
-            machineTask(pub_sucket,sub_sucket,task_port,my_ip_port,dec,okay_time)
+            machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,task_socket,my_ip_port,dec,okay_time)
 
 main()
