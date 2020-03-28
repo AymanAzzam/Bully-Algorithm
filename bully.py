@@ -42,6 +42,7 @@ def connection(dec,my_ip_port,okay_time):
 
 
 def main():
+    
     my_ip_port = sys.argv[1]
     
     dec,leader_time,okay_time = configuration()

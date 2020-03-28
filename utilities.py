@@ -35,13 +35,16 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
 
         if(v > my_priority):
             pub_socket.send("%s %s %s" %("Election",my_ip_port,k))
+            print("election message sent")
 
         try: 
             #check if i recieved election message from another machine
             sub_election_socket.setsockopt(zmq.RCVTIMEO,0)
             recieved_message = sub_election_socket.recv()
+            print("election message recieved")
             if (recieved_message.split(" ")[2] == my_ip_port):
                     pub_socket.send("%s %s" % ("Ok",recieved_message.split(" ")[1])) #reply with an ok message to that machine
+                    print("ok message sent")
                     I_am_leader = True
         except  zmq.error.Again as e:
             I_am_leader = False
@@ -61,6 +64,7 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     if (recieved_ok != True):
         try:
             sub_ok_socket.setsockopt(zmq.RCVTIMEO,okay_time)  # give the machines another chance to reply
+            recieved_ok = True
             msg = sub_ok_socket.recv_string()
         except:
             pub_socket.send("%s %s" %("Leader",my_ip_port))
@@ -84,7 +88,7 @@ def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
         try :
             task_socket.recv_string()
         except zmq.error.Again as e:
-            electLeader(dec,pub_socket,sub_socket,my_ip_port,okay_time)
+            electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
 
 
             
