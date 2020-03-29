@@ -27,9 +27,9 @@ def connection(dec,my_ip_port,okay_time):
     sub_leader_socket = context.socket(zmq.SUB)
 
     pub_socket.bind("tcp://%s"%my_ip_port)
-    sub_election_socket.subscribe("Election")
+    sub_election_socket.subscribe("election")
     sub_ok_socket.subscribe(my_ip_port)
-    sub_leader_socket.subscribe("Leader")
+    sub_leader_socket.subscribe("leader")
 
 
     sub_election_socket.setsockopt(zmq.RCVTIMEO,0)
@@ -53,14 +53,17 @@ def main():
     dec,leader_time,okay_time = configuration()
    
     pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket = connection(dec,my_ip_port,okay_time)
-   
+
+    leader_ip_port = electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
+
     while(True):
-        leader_ip_port = electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
    
         task_socket = getTaskSocket(my_ip_port,leader_ip_port,leader_time)
 
         if(my_ip_port == leader_ip_port):
-            leaderTask(task_socket,my_ip_port,pub_socket,sub_election_socket)
+            leaderTask(dec,task_socket,my_ip_port,pub_socket,sub_election_socket)
+            time.sleep(1)
+            leader_ip_port = electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)        
         else:
             #the machine should return if it knows that the leader is dead
             leader_ip_port = machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,task_socket,my_ip_port,okay_time)
