@@ -23,11 +23,12 @@ def leaderTask(task_socket,my_ip_port,pub_socket,sub_election_socket):
     while(True):
         task_socket.recv_string()
         task_socket.send_string(my_ip_port)
-        try:
-            recieved_message = sub_election_socket.recv()
-            pub_socket.send("%s %s" % (recieved_message.split(" ")[1], my_ip_port))
-        except:
-            continue
+        while(True):
+            try:
+                recieved_message = sub_election_socket.recv()
+                pub_socket.send("%s %s" % (recieved_message.split(" ")[1], my_ip_port))
+            except:
+                break
 
 def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port, okay_time):
     
