@@ -92,8 +92,7 @@ def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
             recieved_election_msg = sub_election_socket.recv()
             if (dec[my_ip_port] > dec[recieved_election_msg.split(" ")[1]]):
                 pub_socket.send("%s %s" % (recieved_election_msg.split(" ")[1], "Ok"))
-                electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
-                break
+                return electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
 
         except:
             dummy = 1
@@ -103,7 +102,7 @@ def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
         try :
             task_socket.recv_string()
         except zmq.error.Again as e:
-            electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
+            return electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
 
 
             
