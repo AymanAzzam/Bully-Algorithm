@@ -18,11 +18,16 @@ def getTaskSocket(my_ip_port,leader_ip_port,leader_time):
 
     return task_socket
 
-def leaderTask(task_socket,my_ip_port):
+def leaderTask(task_socket,my_ip_port,pub_socket,sub_election_socket):
     print("%s I'm the leader"%my_ip_port)
     while(True):
         task_socket.recv_string()
         task_socket.send_string(my_ip_port)
+        try:
+            recieved_message = sub_election_socket.recv()
+            pub_socket.send("%s %s" % (recieved_message.split(" ")[1], my_ip_port))
+        except:
+            continue
 
 def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port, okay_time):
     
