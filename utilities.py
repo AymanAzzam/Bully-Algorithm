@@ -25,7 +25,7 @@ def leaderTask(task_socket,my_ip_port,pub_socket,sub_election_socket):
         try:
             task_socket.recv_string()
             task_socket.send_string(my_ip_port)
-            print("Leader Received Task and replied on it")
+            #print("Leader Received Task and replied on it")
         except zmq.error.Again as e:
             dummy = 1
 
@@ -42,11 +42,11 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     recieved_ok = False
     
     pub_socket.send_string("%s %s" %("Election",my_ip_port))
-    print("election message sent \n")
+    print("Election message sent \n")
     try: 
         #check if i recieved election message from another machine
         recieved_message = sub_election_socket.recv_string()
-        print("election message recieved \n")
+        print("Election message recieved \n")
         if (dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
                 pub_socket.send_string("%s %s" % (recieved_message.split(" ")[1], "Ok")) #reply with an ok message to that machine
                 print("ok message sent to %s \n" %(recieved_message.split(" ")[1]))

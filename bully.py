@@ -63,6 +63,6 @@ def main():
             leaderTask(task_socket,my_ip_port,pub_socket,sub_election_socket)
         else:
             #the machine should return if it knows that the leader is dead
-            leader_ip_port = machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,task_socket,my_ip_port,dec,okay_time)
+            leader_ip_port = machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,task_socket,my_ip_port,okay_time)
 
 main()
