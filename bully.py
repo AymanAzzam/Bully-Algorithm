@@ -30,7 +30,12 @@ def connection(dec,my_ip_port,okay_time):
     sub_election_socket.subscribe("Election")
     sub_ok_socket.subscribe(my_ip_port)
     sub_leader_socket.subscribe("Leader")
-    #sub_socket.setsockopt(zmq.RCVTIMEO, okay_time)
+
+
+    sub_election_socket.setsockopt(zmq.RCVTIMEO,0)
+    sub_ok_socket.setsockopt(zmq.RCVTIMEO,okay_time)
+    sub_leader_socket.setsockopt(zmq.RCVTIMEO,-1)
+   
     for k,v in dec.items():
         if(k != my_ip_port):
             sub_election_socket.connect("tcp://%s"%k)
