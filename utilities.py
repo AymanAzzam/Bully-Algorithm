@@ -30,7 +30,7 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     
     pub_socket.send("%s %s" %("Election",my_ip_port))
     print("election message sent")
-    sub_election_socket.setsockopt(zmq.RCVTIMEO,0)
+    
 
     while (True)
         try: 
@@ -76,6 +76,7 @@ def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     #sub_sucket.setsockopt(zmq.RCVTIMEO, 0)
     while(True):
         try:
+            sub_election_socket.setsockopt(zmq.RCVTIMEO,0)
             recieved_election_msg = sub_election_socket.recv()
             if (dec[my_ip_port] > dec[leader_dead_msg.split(" ")[1]]):
                 electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
