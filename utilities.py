@@ -38,38 +38,48 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
                 pub_socket.send("%s %s" % (recieved_message.split(" ")[1], "Ok")) #reply with an ok message to that machine
                 print("ok message sent to %s" %(recieved_message.split(" ")[1]))
     except  zmq.error.Again as e:
-
+        dummy = 1
 
     try:
         #check if i recieved ok message from another machine
         recieved_message = sub_ok_socket.recv()
         recieved_ok = True
-        break
                   
     except zmq.error.Again as e:
         recieved_ok = False
     
+
+    leader = ""
+    if (recieved_ok == False):
+        pub_socket.send("%s %s" %("Leader",my_ip_port))
+        leader =  my_ip_port  
+
+    else:
+        msg = sub_leader_socket.recv()
+        leader = (msg.split(" ")[1]) 
+
     while (True):
         try: 
             #check if i recieved election message from another machine
             recieved_message = sub_election_socket.recv()
-            print("election message recieved")
             if (dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
                     pub_socket.send("%s %s" % (recieved_message.split(" ")[1], "Ok")) #reply with an ok message to that machine
-                    print("ok message sent to %s" %(recieved_message.split(" ")[1]))
                     continue
         except  zmq.error.Again as e:
-            break
+            break 
 
-    if (recieved_ok == False):
-        pub_socket.send("%s %s" %("Leader",my_ip_port))
-        return my_ip_port  
+    sub_ok_socket.setsockopt(zmq.RCVTIMEO,0)
+    while (True):
+        try: 
+            #check if i recieved election message from another machine
+            recieved_message = sub_ok_socket.recv()
+            continue
+        except  zmq.error.Again as e:
+            break                   
+    sub_ok_socket.setsockopt(zmq.RCVTIMEO,okay_time)
 
-    else:
-        msg = sub_leader_socket.recv()
-        return (msg.split(" ")[1]) 
 
-
+    return leader
       
 
     #return "127.0.0.1:5555"        
@@ -86,6 +96,7 @@ def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
                 break
 
         except:
+            dummy = 1
 
         task_socket.send_string(my_ip_port)
 
