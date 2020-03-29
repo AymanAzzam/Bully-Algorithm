@@ -90,9 +90,13 @@ def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     while(True):
         try:
             recieved_election_msg = sub_election_socket.recv()
-            if (dec[my_ip_port] > dec[recieved_election_msg.split(" ")[1]]):
-                pub_socket.send("%s %s" % (recieved_election_msg.split(" ")[1], "Ok"))
-                return electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
+            task_socket.send_string("is leader alive")
+            try:
+                task_socket.recv_string()
+            except:
+                if (dec[my_ip_port] > dec[recieved_election_msg.split(" ")[1]]):
+                    pub_socket.send("%s %s" % (recieved_election_msg.split(" ")[1], "Ok"))
+                    return electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
 
         except:
             dummy = 1
