@@ -43,6 +43,8 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     try:
         #check if i recieved ok message from another machine
         recieved_message = sub_ok_socket.recv()
+        if (recieved_message.split(" ")[1] != "Ok"):
+            return recieved_message.split(" ")[1] 
         recieved_ok = True
                   
     except zmq.error.Again as e:
