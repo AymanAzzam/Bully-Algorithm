@@ -28,7 +28,7 @@ def connection(dec,my_ip_port,okay_time):
 
     pub_socket.bind("tcp://%s"%my_ip_port)
     sub_election_socket.subscribe("Election")
-    sub_ok_socket.subscribe("Ok")
+    sub_ok_socket.subscribe(my_ip_port)
     sub_leader_socket.subscribe("Leader")
     #sub_socket.setsockopt(zmq.RCVTIMEO, okay_time)
     for k,v in dec.items():
