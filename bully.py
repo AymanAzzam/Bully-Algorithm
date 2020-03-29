@@ -14,7 +14,7 @@ def configuration():
 
     while(machines_num>0):
         ip_port_pri = (f.readline())
-        dec[ip_port_pri.split(" ")[0]] = ip_port_pri.split(" ")[1]
+        dec[ip_port_pri.split(" ")[0]] = int(ip_port_pri.split(" ")[1])
         machines_num -= 1
     #print_dec(dec)
     return dec,leader_time,okay_time
