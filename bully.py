@@ -1,70 +1,162 @@
 import sys
 import zmq
+import time
 from zmq import EAGAIN
-from utilities import *
 
-# leader_time and okay_time in milliseconds
-
-def configuration():
-    dec = {}
-    f = open("config.txt","r")
-    leader_time = int(f.readline())
-    okay_time = int(f.readline())
-    machines_num = int(f.readline())
-
-    while(machines_num>0):
-        ip_port_pri = (f.readline())
-        dec[ip_port_pri.split(" ")[0]] = int(ip_port_pri.split(" ")[1])
-        machines_num -= 1
-    #print_dec(dec)
-    return dec,leader_time,okay_time
-
-def connection(dec,my_ip_port,okay_time):
-    context = zmq.Context()
-    pub_socket = context.socket(zmq.PUB)
-    sub_election_socket = context.socket(zmq.SUB)
-    sub_ok_socket = context.socket(zmq.SUB)
-    sub_leader_socket = context.socket(zmq.SUB)
-
-    pub_socket.bind("tcp://%s"%my_ip_port)
-    sub_election_socket.subscribe("election")
-    sub_ok_socket.subscribe(my_ip_port)
-    sub_leader_socket.subscribe("leader")
-
-
-    sub_election_socket.setsockopt(zmq.RCVTIMEO,0)
-    sub_ok_socket.setsockopt(zmq.RCVTIMEO,okay_time)
-    sub_leader_socket.setsockopt(zmq.RCVTIMEO,-1)
-   
-    for k,v in dec.items():
-        if(k != my_ip_port):
-            sub_election_socket.connect("tcp://%s"%k)
-            sub_ok_socket.connect("tcp://%s"%k)
-            sub_leader_socket.connect("tcp://%s"%k)
-    
-    return pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket
-
-
-
-def main():
-    my_ip_port = sys.argv[1]
-    
-    dec,leader_time,okay_time = configuration()
-   
-    pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket = connection(dec,my_ip_port,okay_time)
-
-    leader_ip_port = electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
-
+def clearSocketBuffer(pull_socket):
+    print("I'm clearing my pull socket buffer \n")
+    time.sleep(1)  #Wait till the pull_socket receive the old data
     while(True):
-   
-        task_socket = getTaskSocket(my_ip_port,leader_ip_port,leader_time)
+        try: 
+            recieved_message = pull_socket.recv_string()
+            print("I cleared %s message is sent by %s \n"%(recieved_message.split(" ")[0],recieved_message.split(" ")[1]))
+        except  zmq.error.Again as e:
+            print("************************************************ \n")
+            return
 
-        if(my_ip_port == leader_ip_port):
-            leaderTask(dec,task_socket,my_ip_port,pub_socket,sub_election_socket)
-            time.sleep(1)
-            leader_ip_port = electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)        
-        else:
-            #the machine should return if it knows that the leader is dead
-            leader_ip_port = machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,task_socket,my_ip_port,okay_time)
+def leaderCheckElection(dec,push_socket,pull_socket,my_ip_port):
+    try:
+        recieved_message = pull_socket.recv_string()
+        if(recieved_message.split(" ")[0] == "Election"):
+            if (dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
+                push_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
+                push_socket.send_string("%s %s" %("Leader",my_ip_port))
+                push_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
+                print("I sent Leader message to %s \n"%recieved_message.split(" ")[1])
+                print("************************************************ \n")
+                print("%s I'm the leader and I'm doing my task \n"%my_ip_port)
+            #else:       #this Case shouldn't happen
+        elif(recieved_message.split(" ")[0] == "Leader"):
+            print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
+            if(dec[my_ip_port] < dec[recieved_message.split(" ")[1]]):
+                print("Its priority is higher than my priority \n")
+                print("************************************************ \n")
+                return recieved_message.split(" ")[1]   # i received Leader message
+            #else:       #this Case shouldn't happen 
+    except zmq.error.Again as e:
+        return 0    # i didn't receive anything
+    return 1        # i didn't receive Leader message
 
-main()
+def machineCheckElection(dec,task_socket,push_socket,push_okay_socket,pull_socket,my_ip_port,leader_ip_port):
+    try: 
+        recieved_message = pull_socket.recv_string()
+        if(recieved_message.split(" ")[0] == "Election"):
+            print("I received election message from %s \n"%recieved_message.split(" ")[1])
+            try:
+                task_socket.send_string("is leader alive")
+                task_socket.recv_string()
+            except zmq.error.Again as e:
+                if(dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
+                    push_okay_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
+                    push_okay_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
+                    push_okay_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
+                    print("I sent okay message to %s \n" %(recieved_message.split(" ")[1]))
+                    print("************************************************ \n")
+                    # The leader changed
+                    return electLeader(dec,push_socket,push_okay_socket,pull_socket,my_ip_port,okay_time)
+                else:
+                    print("I'm waiting till receive Leader message")
+                    while(True):
+                        try: 
+                            recieved_message = pull_socket.recv_string()
+                            if(recieved_message.split(" ")[0] == "Leader"):
+                                print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
+                                print("************************************************ \n")
+                                # The leader changed
+                                return recieved_message.split(" ")[1] 
+                        except  zmq.error.Again as e:
+                            dummy = 1 
+            print("The Leader still alive \n")
+            print("************************************************ \n")
+            print("%s I'm a normal machine and I'm doing my task \n"%my_ip_port)
+        elif(recieved_message.split(" ")[0] == "Leader"):
+            print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
+            if(dec[leader_ip_port] < dec[recieved_message.split(" ")[1]]):
+                print("Its priority is higher than leader priority \n")
+                print("************************************************ \n")
+                # The leader changed
+                return recieved_message.split(" ")[1] 
+    except  zmq.error.Again as e:
+        dummy = 1
+    return 0    #The leader didn't change
+
+def checkPullSocket(dec,push_okay_socket,pull_socket,my_ip_port):
+    try: 
+        recieved_message = pull_socket.recv_string()
+        if(recieved_message.split(" ")[0] == "Election"):
+            print("I received election message from %s \n"%recieved_message.split(" ")[1])
+            if(dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
+                push_okay_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
+                push_okay_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
+                push_okay_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
+                print("ok message sent to %s \n" %(recieved_message.split(" ")[1]))
+        elif(recieved_message.split(" ")[0] == "Ok"):
+            print("I received okay message from %s \n"%recieved_message.split(" ")[1])
+            return 1     # i got okay message
+        elif(recieved_message.split(" ")[0] == "Leader"):
+            print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
+            print("************************************************ \n")
+            return recieved_message.split(" ")[1]   # i received Leader message
+    except  zmq.error.Again as e:
+        return 0        # i received Election or garbage or nothing
+    return 0            # i received Election or garbage or nothing
+
+def electLeader(dec,push_socket,push_okay_socket,pull_socket,my_ip_port, okay_time):  
+    ######### (1) send election for priorities higher than me ############
+    recieved_ok = False
+    i = 0
+    for k,v in dec.items():         
+        if(v > dec[my_ip_port]):
+            push_socket.connect("tcp://%s"%k)
+            push_socket.send_string("%s %s" %("Election",my_ip_port))
+            push_socket.disconnect("tcp://%s"%k)
+            print("I sent Election message to %s \n"%k)
+
+            ######## This Step is Implementation Optimization ##########
+            ######## Checking if i recieved okay message or Leader Message ########## 
+            out = checkPullSocket(dec,push_okay_socket,pull_socket,my_ip_port)
+            if(out == 1):   # i received okay message
+                recieved_ok = True
+                break
+            elif(out != 0):  # i received Leader message
+                return out
+        i+=1
+    
+    ######### (2) Waiting Okay message within the specified time ############
+    milliseconds = int(round(time.time() * 1000))
+    counter = 0    
+    while(not recieved_ok and counter < okay_time): 
+        out = checkPullSocket(dec,push_okay_socket,pull_socket,my_ip_port)
+        if(out == 1):   # i received okay message
+            recieved_ok = True
+            break
+        elif(out != 0):  # i received Leader message
+            return out
+
+        milliseconds2 = int(round(time.time() * 1000))
+        counter +=  milliseconds2 - milliseconds
+        milliseconds = milliseconds2   
+    print("************************************************ \n")
+    
+    ######### (3) if i didn't get an Okay message, Send Leader message to all nodes ############
+    leader = ""
+    if (recieved_ok == False):
+        for k,v in dec.items():
+            if(k != my_ip_port):
+                push_socket.connect("tcp://%s"%k)
+                push_socket.send_string("%s %s" %("Leader",my_ip_port))
+                push_socket.disconnect("tcp://%s"%k)
+                print("I sent Leader message to %s \n"%k)
+        print("************************************************ \n")
+        return my_ip_port  
+    ######### (4) if i got an Okay message, Wait till you get a Leader message ############
+    else:
+        while(True):
+            try: 
+                recieved_message = pull_socket.recv_string()
+                if(recieved_message.split(" ")[0] == "Leader"):
+                    print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
+                    print("************************************************ \n")
+                    return recieved_message.split(" ")[1] 
+            except  zmq.error.Again as e:
+                dummy = 1     
