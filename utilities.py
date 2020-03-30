@@ -35,12 +35,11 @@ def leaderTask(dec,task_socket,my_ip_port,pub_socket,sub_election_socket):
                 recieved_message = sub_election_socket.recv_string()
                 if (dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
                     print("I told the machine %s I'm the leader \n"%recieved_message.split(" ")[1])
-                    time.sleep(0.09)
+                    time.sleep(0.1)
                     pub_socket.send_string("%s %s" % (recieved_message.split(" ")[1], my_ip_port))
                 else:
                     print("I received election message from machine has higher priority than me \n")
                     return
-                    #x = 5
             except zmq.error.Again as e:
                 break
 
@@ -48,7 +47,7 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     
     recieved_ok = False
     
-    time.sleep(0.09)
+    time.sleep(0.1)
     pub_socket.send_string("%s %s" %("election",my_ip_port))
     print("Election message sent \n")
     try: 
@@ -56,7 +55,7 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
         recieved_message = sub_election_socket.recv_string()
         print("Election message recieved \n")
         if (dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
-                time.sleep(0.09)
+                time.sleep(0.1)
                 pub_socket.send_string("%s %s" % (recieved_message.split(" ")[1], "Ok")) #reply with an ok message to that machine
                 print("ok message sent to %s \n" %(recieved_message.split(" ")[1]))
     except  zmq.error.Again as e:
@@ -69,7 +68,7 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
         if (recieved_message.split(" ")[1] != "Ok"):
             print("I received message from the leader \n")
             return recieved_message.split(" ")[1] 
-        print("I received okay message from %s \n"%recieved_message.split(" ")[0])
+        print("I received okay message \n")
         recieved_ok = True
     except zmq.error.Again as e:
         print("I didn't receive okay message \n")
@@ -78,7 +77,7 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
 
     leader = ""
     if (recieved_ok == False):
-        time.sleep(0.09)
+        time.sleep(0.1)
         pub_socket.send_string("%s %s" %("leader",my_ip_port))
         leader =  my_ip_port  
 
@@ -91,7 +90,7 @@ def electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
             #check if i recieved election message from another machine
             recieved_message = sub_election_socket.recv_string()
             if (dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
-                time.sleep(0.09)
+                time.sleep(0.1)
                 pub_socket.send_string("%s %s" % (recieved_message.split(" ")[1], "Ok")) #reply with an ok message to that machine
                 continue
         except  zmq.error.Again as e:
@@ -115,21 +114,19 @@ def machineTask(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_sock
     while(True):
         try:
             recieved_election_msg = sub_election_socket.recv_string()
-            task_socket.send_string("is leader alive")
             try:
+                task_socket.send_string("is leader alive")
                 task_socket.recv_string()
             except zmq.error.Again as e:
                 if (dec[my_ip_port] > dec[recieved_election_msg.split(" ")[1]]):
-                    time.sleep(0.09)
+                    time.sleep(0.1)
                     pub_socket.send_string("%s %s" % (recieved_election_msg.split(" ")[1], "Ok"))
                     return electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
-
         except zmq.error.Again as e:
             dummy = 1
 
-        task_socket.send_string(my_ip_port)
-
         try :
+            task_socket.send_string(my_ip_port)
             task_socket.recv_string()
         except zmq.error.Again as e:
             return electLeader(dec,pub_socket,sub_election_socket,sub_ok_socket,sub_leader_socket,my_ip_port,okay_time)
