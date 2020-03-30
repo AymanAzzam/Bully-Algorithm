@@ -15,10 +15,10 @@ def getTaskSocket(my_ip_port,leader_ip_port,leader_time):
         task_socket.connect("tcp://%s"%leader_ip_port_task)
     return task_socket
 
-def machineTask(dec,push_socket,push_okay_socket,pull_socket,task_socket,my_ip_port,leader_ip_port,okay_time):
+def machineTask(dec,push_socket,pull_socket,task_socket,my_ip_port,leader_ip_port,okay_time):
     print("%s I'm a normal machine and I'm doing my task \n"%my_ip_port)
     while(True):
-        out = machineCheckElection(dec,task_socket,push_socket,push_okay_socket,pull_socket,my_ip_port,leader_ip_port)
+        out = machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,leader_ip_port)
         if(out != 0):   # The leader changed
             return out
 
@@ -28,7 +28,7 @@ def machineTask(dec,push_socket,push_okay_socket,pull_socket,task_socket,my_ip_p
         except zmq.error.Again as e:
             print("I found that the leader died \n")
             print("************************************************ \n")
-            return electLeader(dec,push_socket,push_okay_socket,pull_socket,my_ip_port,okay_time)
+            return electLeader(dec,push_socket,pull_socket,my_ip_port,okay_time)
 
 
 def leaderTask(dec,task_socket,my_ip_port,push_socket,pull_socket):

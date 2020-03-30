@@ -37,7 +37,7 @@ def leaderCheckElection(dec,push_socket,pull_socket,my_ip_port):
         return 0    # i didn't receive anything
     return 1        # i didn't receive Leader message
 
-def machineCheckElection(dec,task_socket,push_socket,push_okay_socket,pull_socket,my_ip_port,leader_ip_port):
+def machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,leader_ip_port):
     try: 
         recieved_message = pull_socket.recv_string()
         if(recieved_message.split(" ")[0] == "Election"):
@@ -47,13 +47,13 @@ def machineCheckElection(dec,task_socket,push_socket,push_okay_socket,pull_socke
                 task_socket.recv_string()
             except zmq.error.Again as e:
                 if(dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
-                    push_okay_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
-                    push_okay_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
-                    push_okay_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
+                    push_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
+                    push_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
+                    push_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
                     print("I sent okay message to %s \n" %(recieved_message.split(" ")[1]))
                     print("************************************************ \n")
                     # The leader changed
-                    return electLeader(dec,push_socket,push_okay_socket,pull_socket,my_ip_port,okay_time)
+                    return electLeader(dec,push_socket,pull_socket,my_ip_port,okay_time)
                 else:
                     print("I'm waiting till receive Leader message")
                     while(True):
@@ -80,15 +80,15 @@ def machineCheckElection(dec,task_socket,push_socket,push_okay_socket,pull_socke
         dummy = 1
     return 0    #The leader didn't change
 
-def checkPullSocket(dec,push_okay_socket,pull_socket,my_ip_port):
+def checkPullSocket(dec,push_socket,pull_socket,my_ip_port):
     try: 
         recieved_message = pull_socket.recv_string()
         if(recieved_message.split(" ")[0] == "Election"):
             print("I received election message from %s \n"%recieved_message.split(" ")[1])
             if(dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
-                push_okay_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
-                push_okay_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
-                push_okay_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
+                push_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
+                push_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
+                push_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
                 print("ok message sent to %s \n" %(recieved_message.split(" ")[1]))
         elif(recieved_message.split(" ")[0] == "Ok"):
             print("I received okay message from %s \n"%recieved_message.split(" ")[1])
@@ -101,7 +101,7 @@ def checkPullSocket(dec,push_okay_socket,pull_socket,my_ip_port):
         return 0        # i received Election or garbage or nothing
     return 0            # i received Election or garbage or nothing
 
-def electLeader(dec,push_socket,push_okay_socket,pull_socket,my_ip_port, okay_time):  
+def electLeader(dec,push_socket,pull_socket,my_ip_port, okay_time):  
     ######### (1) send election for priorities higher than me ############
     recieved_ok = False
     i = 0
@@ -114,7 +114,7 @@ def electLeader(dec,push_socket,push_okay_socket,pull_socket,my_ip_port, okay_ti
 
             ######## This Step is Implementation Optimization ##########
             ######## Checking if i recieved okay message or Leader Message ########## 
-            out = checkPullSocket(dec,push_okay_socket,pull_socket,my_ip_port)
+            out = checkPullSocket(dec,push_socket,pull_socket,my_ip_port)
             if(out == 1):   # i received okay message
                 recieved_ok = True
                 break
@@ -126,7 +126,7 @@ def electLeader(dec,push_socket,push_okay_socket,pull_socket,my_ip_port, okay_ti
     milliseconds = int(round(time.time() * 1000))
     counter = 0    
     while(not recieved_ok and counter < okay_time): 
-        out = checkPullSocket(dec,push_okay_socket,pull_socket,my_ip_port)
+        out = checkPullSocket(dec,push_socket,pull_socket,my_ip_port)
         if(out == 1):   # i received okay message
             recieved_ok = True
             break
