@@ -1,5 +1,5 @@
 # Optimized Bully Algorithm
-Implementatin using Push/Pull model for Optimized Bully Algorithm where the node sends election message for higher priorites only.
+Implementatin using `Push/Pull model` and `python` for Optimized Bully Algorithm where the node sends election message for higher priorites only.
 
 ## Configuration file
   1. The first line is the period time in which if the leader didn't reply, the node assumes that the leader is dead.
