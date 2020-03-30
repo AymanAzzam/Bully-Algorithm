@@ -1,7 +1,7 @@
 # Optimized Bully Algorithm
 Implementatin using Push/Pull model for Optimized Bully Algorithm where the node sends election message for higher priorites only.
 
-# Configuration file
+## Configuration file
   1. The first line is the period time in which if the leader didn't reply, the node assumes that the leader is dead.
   2. The second line is the period time in which if the node didn't receive okay message, it assumes that it's the leader.
   3. The third line is number of machines(n) in the network.
