@@ -16,6 +16,7 @@ def getTaskSocket(my_ip_port,leader_ip_port,leader_time):
     return task_socket
 
 def machineTask(dec,push_socket,pull_socket,task_socket,my_ip_port,leader_ip_port,okay_time):
+    print("At time stamp : %i \n"%(time.time()-1585656000))
     print("%s I'm a normal machine and I'm doing my task \n"%my_ip_port)
     while(True):
         out = machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,leader_ip_port)
@@ -26,12 +27,14 @@ def machineTask(dec,push_socket,pull_socket,task_socket,my_ip_port,leader_ip_por
             task_socket.send_string(my_ip_port)
             task_socket.recv_string()
         except zmq.error.Again as e:
+            print("At time stamp : %i \n"%(time.time()-1585656000))
             print("I found that the leader died \n")
             print("************************************************ \n")
             return electLeader(dec,push_socket,pull_socket,my_ip_port,okay_time)
 
 
 def leaderTask(dec,task_socket,my_ip_port,push_socket,pull_socket):
+    print("At time stamp : %i \n"%(time.time()-1585656000))
     print("%s I'm the leader and I'm doing my task \n"%my_ip_port)
     while(True):
         try:

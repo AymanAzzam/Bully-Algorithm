@@ -17,6 +17,7 @@ def clearSocketBuffer(pull_socket):
 def leaderCheckElection(dec,push_socket,pull_socket,my_ip_port):
     try:
         recieved_message = pull_socket.recv_string()
+        print("At time stamp : %i \n"%(time.time()-1585656000))
         if(recieved_message.split(" ")[0] == "Election"):
             if (dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
                 push_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
@@ -24,6 +25,7 @@ def leaderCheckElection(dec,push_socket,pull_socket,my_ip_port):
                 push_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
                 print("I sent Leader message to %s \n"%recieved_message.split(" ")[1])
                 print("************************************************ \n")
+                print("At time stamp : %i \n"%(time.time()-1585656000))
                 print("%s I'm the leader and I'm doing my task \n"%my_ip_port)
             #else:       #this Case shouldn't happen
         elif(recieved_message.split(" ")[0] == "Leader"):
@@ -40,6 +42,7 @@ def leaderCheckElection(dec,push_socket,pull_socket,my_ip_port):
 def machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,leader_ip_port):
     try: 
         recieved_message = pull_socket.recv_string()
+        print("At time stamp : %i \n"%(time.time()-1585656000))
         if(recieved_message.split(" ")[0] == "Election"):
             print("I received election message from %s \n"%recieved_message.split(" ")[1])
             try:
@@ -50,6 +53,7 @@ def machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,lead
                     push_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
                     push_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
                     push_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
+                    print("At time stamp : %i \n"%(time.time()-1585656000))
                     print("I sent okay message to %s \n" %(recieved_message.split(" ")[1]))
                     print("************************************************ \n")
                     # The leader changed
@@ -60,6 +64,7 @@ def machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,lead
                         try: 
                             recieved_message = pull_socket.recv_string()
                             if(recieved_message.split(" ")[0] == "Leader"):
+                                print("At time stamp : %i \n"%(time.time()-1585656000))
                                 print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
                                 print("************************************************ \n")
                                 # The leader changed
@@ -68,6 +73,7 @@ def machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,lead
                             dummy = 1 
             print("The Leader still alive \n")
             print("************************************************ \n")
+            print("At time stamp : %i \n"%(time.time()-1585656000))
             print("%s I'm a normal machine and I'm doing my task \n"%my_ip_port)
         elif(recieved_message.split(" ")[0] == "Leader"):
             print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
@@ -83,12 +89,14 @@ def machineCheckElection(dec,task_socket,push_socket,pull_socket,my_ip_port,lead
 def checkPullSocket(dec,push_socket,pull_socket,my_ip_port):
     try: 
         recieved_message = pull_socket.recv_string()
+        print("At time stamp : %i \n"%(time.time()-1585656000))
         if(recieved_message.split(" ")[0] == "Election"):
             print("I received election message from %s \n"%recieved_message.split(" ")[1])
             if(dec[my_ip_port] > dec[recieved_message.split(" ")[1]]):
                 push_socket.connect("tcp://%s"%recieved_message.split(" ")[1])
                 push_socket.send_string("%s %s" % ("Ok",my_ip_port)) 
                 push_socket.disconnect("tcp://%s"%recieved_message.split(" ")[1])
+                print("At time stamp : %i \n"%(time.time()-1585656000))
                 print("ok message sent to %s \n" %(recieved_message.split(" ")[1]))
         elif(recieved_message.split(" ")[0] == "Ok"):
             print("I received okay message from %s \n"%recieved_message.split(" ")[1])
@@ -110,6 +118,7 @@ def electLeader(dec,push_socket,pull_socket,my_ip_port, okay_time):
             push_socket.connect("tcp://%s"%k)
             push_socket.send_string("%s %s" %("Election",my_ip_port))
             push_socket.disconnect("tcp://%s"%k)
+            print("At time stamp : %i \n"%(time.time()-1585656000))
             print("I sent Election message to %s \n"%k)
 
             ######## This Step is Implementation Optimization ##########
@@ -146,6 +155,7 @@ def electLeader(dec,push_socket,pull_socket,my_ip_port, okay_time):
                 push_socket.connect("tcp://%s"%k)
                 push_socket.send_string("%s %s" %("Leader",my_ip_port))
                 push_socket.disconnect("tcp://%s"%k)
+                print("At time stamp : %i \n"%(time.time()-1585656000))
                 print("I sent Leader message to %s \n"%k)
         print("************************************************ \n")
         return my_ip_port  
@@ -155,6 +165,7 @@ def electLeader(dec,push_socket,pull_socket,my_ip_port, okay_time):
             try: 
                 recieved_message = pull_socket.recv_string()
                 if(recieved_message.split(" ")[0] == "Leader"):
+                    print("At time stamp : %i \n"%(time.time()-1585656000))
                     print("I received Leader message from %s \n"%recieved_message.split(" ")[1])
                     print("************************************************ \n")
                     return recieved_message.split(" ")[1] 
